@@ -13,6 +13,8 @@ import aiohttp
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
+from .images import sniff_content_type
+
 API_PATH = "/ugreen/v5/photo/share"
 PAGE_SIZE = 1000
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
@@ -257,6 +259,7 @@ class UgreenShareClient:
             )
             # Errors (expired token, photo not in share, ...) come back as JSON.
             if not response.content_type.startswith("application/json"):
-                return response.content_type, body
+                # The header says image/webp for all renditions, the bytes may be JPEG or PNG.
+                return sniff_content_type(body) or response.content_type, body
             message = _decode_json(body).get("msg")
         raise UgreenShareError(message or f"Could not load photo {photo_id}")

@@ -16,9 +16,8 @@ from homeassistant.util import dt as dt_util
 from .api import Photo, UgreenShareError
 from .const import DOMAIN
 from .coordinator import UgreenAlbumCoordinator, async_get_coordinators
+from .images import JPEG as IMAGE_MIME
 from .view import image_path
-
-IMAGE_MIME = "image/webp"
 
 
 async def async_get_media_source(hass: HomeAssistant) -> MediaSource:

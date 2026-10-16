@@ -15,6 +15,7 @@ from .api import (
 )
 from .const import DOMAIN, LOGGER
 from .coordinator import async_get_coordinators
+from .images import to_jpeg_or_png
 
 SIZES = {"thumbnail": SIZE_THUMBNAIL, "full": SIZE_FULL, "original": SIZE_ORIGINAL}
 
@@ -34,7 +35,8 @@ class UgreenAlbumImageView(HomeAssistantView):
         self, request: web.Request, album_uuid: str, photo_id: str, size: str
     ) -> web.Response:
         """Return one photo; the NAS itself only serves photos of the share."""
-        coordinator = async_get_coordinators(request.app[KEY_HASS]).get(album_uuid)
+        hass = request.app[KEY_HASS]
+        coordinator = async_get_coordinators(hass).get(album_uuid)
         if coordinator is None or size not in SIZES or not photo_id.isdigit():
             return web.Response(status=404)
         try:
@@ -45,6 +47,8 @@ class UgreenAlbumImageView(HomeAssistantView):
         except UgreenShareError as err:
             LOGGER.debug("Could not load photo %s: %s", photo_id, err)
             return web.Response(status=404)
+        if size != "original":
+            content_type, body = await hass.async_add_executor_job(to_jpeg_or_png, body, content_type)
         return web.Response(
             body=body, content_type=content_type, headers={"Cache-Control": "private, max-age=86400"}
         )

@@ -7,7 +7,18 @@ Brings **shared albums** (including smart albums) from a UGREEN NAS (UGOS Pro, "
 - **Any number of albums**, managed via *Configure*.
 - **Access-code protected shares** are supported.
 
-Photos are served through Home Assistant (proxy), so they also work when the browser cannot reach the NAS directly (e.g. when you are away from home). HEIC photos are automatically delivered as WebP by the NAS.
+Photos are served through Home Assistant (proxy), so they also work when the browser cannot reach the NAS directly (e.g. when you are away from home). All photos are delivered as JPEG (or PNG), including HEIC and WebP originals, so simple clients like photo frames can show them too.
+
+## Using the albums elsewhere (slideshows, photo frames)
+
+Any client that browses Home Assistant media sources can use the albums, e.g. the idle-screen slideshow of an Echo Show running [techo5](https://github.com/HuskerMinion/techo5). Media source IDs:
+
+| What | Media source ID |
+|---|---|
+| All albums | `media-source://ugreen_album_share` (no trailing slash – Home Assistant rejects `…/`) |
+| One album | `media-source://ugreen_album_share/<uuid>` (the `uuid` from the share link) |
+
+The album uuid is also shown in the address bar when you open an album in the media browser.
 
 > [!WARNING]
 > **Disclaimer – use at your own risk.**

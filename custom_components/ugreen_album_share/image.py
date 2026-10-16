@@ -15,6 +15,7 @@ from homeassistant.util import dt as dt_util
 from .api import SIZE_FULL, Photo, UgreenShareError
 from .const import DOMAIN, LOGGER
 from .coordinator import UgreenAlbumConfigEntry, UgreenAlbumCoordinator
+from .images import JPEG, to_jpeg_or_png
 
 
 async def async_setup_entry(
@@ -33,7 +34,7 @@ class UgreenAlbumRandomImage(CoordinatorEntity[UgreenAlbumCoordinator], ImageEnt
 
     _attr_has_entity_name = True
     _attr_translation_key = "random_photo"
-    _attr_content_type = "image/webp"
+    _attr_content_type = JPEG
 
     def __init__(self, hass: HomeAssistant, coordinator: UgreenAlbumCoordinator) -> None:
         CoordinatorEntity.__init__(self, coordinator)
@@ -94,6 +95,7 @@ class UgreenAlbumRandomImage(CoordinatorEntity[UgreenAlbumCoordinator], ImageEnt
         except UgreenShareError as err:
             LOGGER.warning("Could not load photo %s: %s", self._photo.id, err)
             return None
+        content_type, body = await self.hass.async_add_executor_job(to_jpeg_or_png, body, content_type)
         self._attr_content_type = content_type
         self._image = (self._photo.id, body)
         return body
