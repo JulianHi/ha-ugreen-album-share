@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from homeassistant.const import CONF_NAME, CONF_URL, CONF_VERIFY_SSL, Platform
+from homeassistant.const import CONF_NAME, CONF_PASSWORD, CONF_URL, CONF_VERIFY_SSL, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv, device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -32,7 +32,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: UgreenAlbumConfigEntry) 
 
     coordinators: dict[str, UgreenAlbumCoordinator] = {}
     for album in entry.options.get(CONF_ALBUMS, []):
-        client = UgreenShareClient(session, ShareLink.parse(album[CONF_URL]))
+        client = UgreenShareClient(session, ShareLink.parse(album[CONF_URL]), album.get(CONF_PASSWORD))
         coordinators[client.link.uuid] = UgreenAlbumCoordinator(
             hass, entry, client, album[CONF_NAME], interval
         )

@@ -10,6 +10,8 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 import aiohttp
+from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
 API_PATH = "/ugreen/v5/photo/share"
 PAGE_SIZE = 1000
@@ -23,6 +25,12 @@ SIZE_ORIGINAL = 0
 SIZE_THUMBNAIL = 1
 SIZE_FULL = 3  # full resolution, delivered as WebP (also for HEIC originals)
 
+ERROR_WRONG_PASSWORD = 10056
+
+# Tokens shared between client instances (validation in the config flow, reloads), so a
+# protected share is not unlocked again each time: the NAS rate limits code logins.
+_TOKENS: dict[tuple[str, int, str, str | None], tuple[str, float]] = {}
+
 
 class UgreenShareError(Exception):
     """Generic error talking to the share API."""
@@ -32,8 +40,16 @@ class UgreenShareConnectionError(UgreenShareError):
     """The NAS could not be reached."""
 
 
-class UgreenSharePasswordError(UgreenShareError):
-    """The share is password protected (not supported)."""
+class UgreenSharePasswordRequired(UgreenShareError):
+    """The share is protected by an access code, but none was given."""
+
+
+class UgreenShareInvalidPassword(UgreenShareError):
+    """The access code was rejected."""
+
+
+class UgreenShareRateLimited(UgreenShareError):
+    """Too many attempts, the NAS asks to wait (usually 60 s)."""
 
 
 class InvalidShareLink(UgreenShareError):
@@ -91,6 +107,12 @@ def _decode_json(body: bytes) -> dict[str, Any]:
         raise UgreenShareError("Unexpected response from NAS") from err
 
 
+def _encrypt_password(rsa_token: str, password: str) -> str:
+    """Encrypt the access code like the share page (JSEncrypt, RSA PKCS#1 v1.5)."""
+    key = load_pem_public_key(base64.b64decode(rsa_token))
+    return base64.b64encode(key.encrypt(password.encode(), PKCS1v15())).decode()
+
+
 def _token_expiry(token: str) -> float:
     """Read the exp claim of the (JWT) share token."""
     try:
@@ -104,12 +126,14 @@ def _token_expiry(token: str) -> float:
 class UgreenShareClient:
     """Access one shared album without logging in, like the share web page does."""
 
-    def __init__(self, session: aiohttp.ClientSession, link: ShareLink) -> None:
+    def __init__(
+        self, session: aiohttp.ClientSession, link: ShareLink, password: str | None = None
+    ) -> None:
         self._session = session
         self.link = link
+        self._password = password
         self.album_name: str | None = None
-        self._token: str | None = None
-        self._token_expiry = 0.0
+        self._token_key = (link.base_url, link.share_id, link.uuid, password)
         self._photos: list[Photo] = []
         self._photos_fetched = 0.0
 
@@ -127,13 +151,16 @@ class UgreenShareClient:
             body = await response.read()
         except (aiohttp.ClientError, TimeoutError) as err:
             raise UgreenShareConnectionError(str(err) or type(err).__name__) from err
+        if response.status == 429:
+            raise UgreenShareRateLimited("Too many requests")
         if response.status != 200:
             raise UgreenShareConnectionError(f"HTTP {response.status}")
         return response, body
 
     async def _async_token(self, force: bool = False) -> str:
-        if not force and self._token and time.time() < self._token_expiry - TOKEN_MARGIN:
-            return self._token
+        cached = _TOKENS.get(self._token_key)
+        if not force and cached and time.time() < cached[1] - TOKEN_MARGIN:
+            return cached[0]
         response, body = await self._call(
             "POST",
             "/white/verify",
@@ -143,13 +170,36 @@ class UgreenShareClient:
         if payload.get("code") != 200:
             raise UgreenShareError(payload.get("msg") or "Share not available")
         if (payload.get("data") or {}).get("has_pass_word"):
-            raise UgreenSharePasswordError("Share is password protected")
+            response, payload = await self._async_login(response.headers.get("x-rsa-token"))
         token = response.headers.get("x-photo-external-token")
         if not token:
             raise UgreenShareError("NAS did not return a share token")
-        self._token = token
-        self._token_expiry = _token_expiry(token)
+        _TOKENS[self._token_key] = (token, _token_expiry(token))
         return token
+
+    async def _async_login(
+        self, rsa_token: str | None
+    ) -> tuple[aiohttp.ClientResponse, dict[str, Any]]:
+        """Unlock a protected share with the access code."""
+        if not self._password:
+            raise UgreenSharePasswordRequired("Share is protected by an access code")
+        if not rsa_token:
+            raise UgreenShareError("NAS did not return an encryption key")
+        try:
+            encrypted = _encrypt_password(rsa_token, self._password)
+        except ValueError as err:
+            raise UgreenShareError(f"Invalid encryption key from NAS: {err}") from err
+        response, body = await self._call(
+            "POST", "/white/password", json={"share_id": self.link.share_id, "password": encrypted}
+        )
+        payload = _decode_json(body)
+        if payload.get("code") == ERROR_WRONG_PASSWORD or (
+            payload.get("code") == 200 and not (payload.get("data") or {}).get("permit")
+        ):
+            raise UgreenShareInvalidPassword("Access code was rejected")
+        if payload.get("code") != 200:
+            raise UgreenShareError(payload.get("msg") or "Could not unlock share")
+        return response, payload
 
     async def async_get_photos(self, force_refresh: bool = False) -> list[Photo]:
         """Return all photos of the album, newest first."""

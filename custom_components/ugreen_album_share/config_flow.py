@@ -7,7 +7,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
-from homeassistant.const import CONF_NAME, CONF_URL, CONF_VERIFY_SSL
+from homeassistant.const import CONF_NAME, CONF_PASSWORD, CONF_URL, CONF_VERIFY_SSL
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.selector import (
@@ -29,15 +29,26 @@ from .api import (
     UgreenShareClient,
     UgreenShareConnectionError,
     UgreenShareError,
-    UgreenSharePasswordError,
+    UgreenShareInvalidPassword,
+    UgreenSharePasswordRequired,
+    UgreenShareRateLimited,
 )
 from .const import CONF_ALBUMS, CONF_ROTATE_INTERVAL, DEFAULT_ROTATE_INTERVAL, DOMAIN, LOGGER
 
 CONF_REMOVE = "remove"
+CONF_ALBUM = "album"
+
+EDIT_SCHEMA = vol.Schema(
+    {
+        vol.Optional(CONF_PASSWORD): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
+        vol.Optional(CONF_NAME): str,
+    }
+)
 
 ALBUM_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_URL): TextSelector(TextSelectorConfig(type=TextSelectorType.URL)),
+        vol.Optional(CONF_PASSWORD): TextSelector(TextSelectorConfig(type=TextSelectorType.PASSWORD)),
         vol.Optional(CONF_NAME): str,
     }
 )
@@ -54,11 +65,16 @@ async def _async_album_from_input(
     if any(ShareLink.parse(album[CONF_URL]).uuid == link.uuid for album in albums):
         return None, {CONF_URL: "already_configured"}
 
-    client = UgreenShareClient(async_get_clientsession(hass, verify_ssl=verify_ssl), link)
+    password = user_input.get(CONF_PASSWORD) or None
+    client = UgreenShareClient(async_get_clientsession(hass, verify_ssl=verify_ssl), link, password)
     try:
         await client.async_get_photos()
-    except UgreenSharePasswordError:
-        return None, {"base": "password_protected"}
+    except UgreenSharePasswordRequired:
+        return None, {CONF_PASSWORD: "password_required"}
+    except UgreenShareInvalidPassword:
+        return None, {CONF_PASSWORD: "invalid_password"}
+    except UgreenShareRateLimited:
+        return None, {"base": "rate_limited"}
     except UgreenShareConnectionError:
         return None, {"base": "cannot_connect"}
     except UgreenShareError:
@@ -68,7 +84,10 @@ async def _async_album_from_input(
         return None, {"base": "unknown"}
 
     name = (user_input.get(CONF_NAME) or "").strip() or client.album_name or f"Album {link.share_id}"
-    return {CONF_URL: link.url, CONF_NAME: name}, {}
+    album = {CONF_URL: link.url, CONF_NAME: name}
+    if password:
+        album[CONF_PASSWORD] = password
+    return album, {}
 
 
 class UgreenAlbumConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -105,7 +124,9 @@ class UgreenAlbumConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class UgreenAlbumOptionsFlow(OptionsFlow):
-    """Menu to add albums, remove albums or change settings."""
+    """Menu to add, edit or remove albums and change settings."""
+
+    _edit_url: str | None = None
 
     @property
     def _albums(self) -> list[dict[str, str]]:
@@ -117,7 +138,7 @@ class UgreenAlbumOptionsFlow(OptionsFlow):
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Main menu."""
         return self.async_show_menu(
-            step_id="init", menu_options=["add_album", "remove_album", "settings"]
+            step_id="init", menu_options=["add_album", "edit_album", "remove_album", "settings"]
         )
 
     async def async_step_add_album(
@@ -140,6 +161,55 @@ class UgreenAlbumOptionsFlow(OptionsFlow):
             errors=errors,
         )
 
+    def _album_selector(self, multiple: bool) -> SelectSelector:
+        return SelectSelector(
+            SelectSelectorConfig(
+                options=[
+                    SelectOptionDict(value=a[CONF_URL], label=a[CONF_NAME]) for a in self._albums
+                ],
+                multiple=multiple,
+            )
+        )
+
+    async def async_step_edit_album(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Choose the album to edit."""
+        if not self._albums:
+            return self.async_abort(reason="no_albums")
+        if user_input is not None:
+            self._edit_url = user_input[CONF_ALBUM]
+            return await self.async_step_edit_album_details()
+        return self.async_show_form(
+            step_id="edit_album",
+            data_schema=vol.Schema({vol.Required(CONF_ALBUM): self._album_selector(False)}),
+        )
+
+    async def async_step_edit_album_details(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Change name or access code of the chosen album."""
+        album = next(a for a in self._albums if a[CONF_URL] == self._edit_url)
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            others = [a for a in self._albums if a is not album]
+            updated, errors = await _async_album_from_input(
+                self.hass,
+                {**user_input, CONF_URL: album[CONF_URL]},
+                others,
+                self.config_entry.options.get(CONF_VERIFY_SSL, True),
+            )
+            if updated:
+                return self._save(
+                    **{CONF_ALBUMS: [updated if a is album else a for a in self._albums]}
+                )
+        return self.async_show_form(
+            step_id="edit_album_details",
+            data_schema=self.add_suggested_values_to_schema(EDIT_SCHEMA, user_input or album),
+            description_placeholders={"album": album[CONF_NAME]},
+            errors=errors,
+        )
+
     async def async_step_remove_album(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -151,15 +221,10 @@ class UgreenAlbumOptionsFlow(OptionsFlow):
             return self._save(
                 **{CONF_ALBUMS: [a for a in self._albums if a[CONF_URL] not in remove]}
             )
-        options = [SelectOptionDict(value=a[CONF_URL], label=a[CONF_NAME]) for a in self._albums]
         return self.async_show_form(
             step_id="remove_album",
             data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_REMOVE, default=[]): SelectSelector(
-                        SelectSelectorConfig(options=options, multiple=True)
-                    )
-                }
+                {vol.Required(CONF_REMOVE, default=[]): self._album_selector(True)}
             ),
         )
 

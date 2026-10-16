@@ -22,7 +22,7 @@ In der UGREEN Fotos-App (Web oder Smartphone) ein Album öffnen → **Teilen** �
 https://<nas>/photo/share/?id=2&pagetype=share&uuid=0d7328f5-....
 ```
 
-- Die Freigabe darf **kein Passwort** haben (wird noch nicht unterstützt).
+- Ist die Freigabe mit einem **Zugangscode** geschützt, diesen im Feld „Zugangscode“ angeben (sonst leer lassen).
 - Die Freigabe sollte **kein Ablaufdatum** haben, sonst verschwindet das Album danach.
 - Home Assistant muss die Adresse im Link erreichen können.
 
@@ -32,7 +32,8 @@ Beim Hinzufügen wird der erste Album-Link abgefragt. Danach unter *UGREEN Album
 
 | Menüpunkt | Funktion |
 |---|---|
-| Album hinzufügen | weiteren Freigabe-Link eintragen (Name optional, Standard ist der Albumname) |
+| Album hinzufügen | weiteren Freigabe-Link eintragen (Zugangscode und Name optional, Standard-Name ist der Albumname) |
+| Album bearbeiten | Name oder Zugangscode eines Albums ändern (z. B. wenn der Code auf dem NAS geändert wurde) |
 | Alben entfernen | ein oder mehrere Alben entfernen (inkl. Gerät & Entität) |
 | Einstellungen | Wechselintervall des Zufallsfotos, SSL-Prüfung (z. B. für selbstsignierte Zertifikate abschalten) |
 
@@ -49,10 +50,12 @@ show_name: false
 
 Die Integration nutzt dieselbe API wie die Freigabe-Webseite des NAS:
 
-1. `POST /ugreen/v5/photo/share/white/verify` → anonymes Token (24 h gültig, wird automatisch erneuert)
+1. `POST /ugreen/v5/photo/share/white/verify` → anonymes Token (24 h gültig, wird automatisch erneuert).
+   Bei geschützten Freigaben liefert das NAS stattdessen einen RSA-Schlüssel (`x-rsa-token`); der Zugangscode wird damit verschlüsselt an `POST …/white/password` geschickt, was das Token liefert.
+   Das NAS begrenzt Code-Eingaben (HTTP 429, ca. 1 Minute warten).
 2. `GET /ugreen/v5/photo/share/external/detail` → Fotoliste
 3. `GET /ugreen/v5/photo/share/external/stream?id=…&size_type=…` → Foto (1 = Vorschau, 3 = volle Größe als WebP, 0 = Original)
 
-Das NAS liefert über das Token nur Fotos aus, die im geteilten Album enthalten sind.
+Der Zugangscode wird in der Home-Assistant-Konfiguration (`.storage`) gespeichert, wie Passwörter anderer Integrationen auch. Das NAS liefert über das Token nur Fotos aus, die im geteilten Album enthalten sind.
 
 Getestet mit UGOS Pro, App `com.ugreen.album-share` Version 324.

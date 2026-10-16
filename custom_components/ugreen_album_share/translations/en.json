@@ -4,8 +4,15 @@
       "user": {
         "title": "Add first album",
         "description": "Paste the share link of an album from the UGREEN photo app. More albums can be added later via \"Configure\".",
-        "data": { "url": "Share link", "name": "Name (optional)" },
-        "data_description": { "name": "Defaults to the album name on the NAS." }
+        "data": {
+          "url": "Share link",
+          "password": "Access code (optional)",
+          "name": "Name (optional)"
+        },
+        "data_description": {
+          "name": "Defaults to the album name on the NAS.",
+          "password": "Only needed if the share is protected by an access code."
+        }
       }
     },
     "error": {
@@ -13,8 +20,10 @@
       "already_configured": "This album is already added.",
       "cannot_connect": "The NAS could not be reached.",
       "invalid_share": "The share does not exist (anymore) or has expired.",
-      "password_protected": "Password protected shares are not supported.",
-      "unknown": "Unexpected error, see the log."
+      "unknown": "Unexpected error, see the log.",
+      "password_required": "This album is protected, please enter its access code.",
+      "invalid_password": "The access code is wrong.",
+      "rate_limited": "Too many attempts, please wait a minute and try again."
     },
     "abort": {
       "single_instance_allowed": "Already configured. Add more albums via \"Configure\"."
@@ -26,6 +35,7 @@
         "title": "UGREEN Album Share",
         "menu_options": {
           "add_album": "Add album",
+          "edit_album": "Edit album",
           "remove_album": "Remove albums",
           "settings": "Settings"
         }
@@ -33,12 +43,39 @@
       "add_album": {
         "title": "Add album",
         "description": "Paste the share link of an album from the UGREEN photo app.",
-        "data": { "url": "Share link", "name": "Name (optional)" },
-        "data_description": { "name": "Defaults to the album name on the NAS." }
+        "data": {
+          "url": "Share link",
+          "password": "Access code (optional)",
+          "name": "Name (optional)"
+        },
+        "data_description": {
+          "name": "Defaults to the album name on the NAS.",
+          "password": "Only needed if the share is protected by an access code."
+        }
+      },
+      "edit_album": {
+        "title": "Edit album",
+        "data": {
+          "album": "Album"
+        }
+      },
+      "edit_album_details": {
+        "title": "Edit album",
+        "description": "Album: {album}",
+        "data": {
+          "password": "Access code (optional)",
+          "name": "Name"
+        },
+        "data_description": {
+          "password": "Leave empty if the share is not protected.",
+          "name": "Empty = album name on the NAS."
+        }
       },
       "remove_album": {
         "title": "Remove albums",
-        "data": { "remove": "Albums to remove" }
+        "data": {
+          "remove": "Albums to remove"
+        }
       },
       "settings": {
         "title": "Settings",
@@ -53,8 +90,10 @@
       "already_configured": "This album is already added.",
       "cannot_connect": "The NAS could not be reached.",
       "invalid_share": "The share does not exist (anymore) or has expired.",
-      "password_protected": "Password protected shares are not supported.",
-      "unknown": "Unexpected error, see the log."
+      "unknown": "Unexpected error, see the log.",
+      "password_required": "This album is protected, please enter its access code.",
+      "invalid_password": "The access code is wrong.",
+      "rate_limited": "Too many attempts, please wait a minute and try again."
     },
     "abort": {
       "no_albums": "No albums configured."
@@ -62,7 +101,9 @@
   },
   "entity": {
     "image": {
-      "random_photo": { "name": "Random photo" }
+      "random_photo": {
+        "name": "Random photo"
+      }
     }
   }
 }

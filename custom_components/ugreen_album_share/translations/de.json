@@ -4,8 +4,15 @@
       "user": {
         "title": "Erstes Album hinzufügen",
         "description": "Füge den Freigabe-Link eines Albums aus der UGREEN Fotos-App ein. Weitere Alben kannst du danach über \"Konfigurieren\" hinzufügen.",
-        "data": { "url": "Freigabe-Link", "name": "Name (optional)" },
-        "data_description": { "name": "Standard ist der Albumname auf dem NAS." }
+        "data": {
+          "url": "Freigabe-Link",
+          "password": "Zugangscode (optional)",
+          "name": "Name (optional)"
+        },
+        "data_description": {
+          "name": "Standard ist der Albumname auf dem NAS.",
+          "password": "Nur nötig, wenn die Freigabe mit einem Zugangscode geschützt ist."
+        }
       }
     },
     "error": {
@@ -13,8 +20,10 @@
       "already_configured": "Dieses Album ist bereits eingetragen.",
       "cannot_connect": "Das NAS ist nicht erreichbar.",
       "invalid_share": "Die Freigabe existiert nicht (mehr) oder ist abgelaufen.",
-      "password_protected": "Passwortgeschützte Freigaben werden nicht unterstützt.",
-      "unknown": "Unerwarteter Fehler, siehe Log."
+      "unknown": "Unerwarteter Fehler, siehe Log.",
+      "password_required": "Dieses Album ist geschützt, bitte den Zugangscode eingeben.",
+      "invalid_password": "Der Zugangscode ist falsch.",
+      "rate_limited": "Zu viele Versuche, bitte eine Minute warten und erneut versuchen."
     },
     "abort": {
       "single_instance_allowed": "Bereits eingerichtet. Weitere Alben über \"Konfigurieren\" hinzufügen."
@@ -26,6 +35,7 @@
         "title": "UGREEN Album Share",
         "menu_options": {
           "add_album": "Album hinzufügen",
+          "edit_album": "Album bearbeiten",
           "remove_album": "Alben entfernen",
           "settings": "Einstellungen"
         }
@@ -33,12 +43,39 @@
       "add_album": {
         "title": "Album hinzufügen",
         "description": "Füge den Freigabe-Link eines Albums aus der UGREEN Fotos-App ein.",
-        "data": { "url": "Freigabe-Link", "name": "Name (optional)" },
-        "data_description": { "name": "Standard ist der Albumname auf dem NAS." }
+        "data": {
+          "url": "Freigabe-Link",
+          "password": "Zugangscode (optional)",
+          "name": "Name (optional)"
+        },
+        "data_description": {
+          "name": "Standard ist der Albumname auf dem NAS.",
+          "password": "Nur nötig, wenn die Freigabe mit einem Zugangscode geschützt ist."
+        }
+      },
+      "edit_album": {
+        "title": "Album bearbeiten",
+        "data": {
+          "album": "Album"
+        }
+      },
+      "edit_album_details": {
+        "title": "Album bearbeiten",
+        "description": "Album: {album}",
+        "data": {
+          "password": "Zugangscode (optional)",
+          "name": "Name"
+        },
+        "data_description": {
+          "password": "Leer lassen, wenn die Freigabe nicht geschützt ist.",
+          "name": "Leer = Albumname auf dem NAS."
+        }
       },
       "remove_album": {
         "title": "Alben entfernen",
-        "data": { "remove": "Zu entfernende Alben" }
+        "data": {
+          "remove": "Zu entfernende Alben"
+        }
       },
       "settings": {
         "title": "Einstellungen",
@@ -53,8 +90,10 @@
       "already_configured": "Dieses Album ist bereits eingetragen.",
       "cannot_connect": "Das NAS ist nicht erreichbar.",
       "invalid_share": "Die Freigabe existiert nicht (mehr) oder ist abgelaufen.",
-      "password_protected": "Passwortgeschützte Freigaben werden nicht unterstützt.",
-      "unknown": "Unerwarteter Fehler, siehe Log."
+      "unknown": "Unerwarteter Fehler, siehe Log.",
+      "password_required": "Dieses Album ist geschützt, bitte den Zugangscode eingeben.",
+      "invalid_password": "Der Zugangscode ist falsch.",
+      "rate_limited": "Zu viele Versuche, bitte eine Minute warten und erneut versuchen."
     },
     "abort": {
       "no_albums": "Keine Alben eingerichtet."
@@ -62,7 +101,9 @@
   },
   "entity": {
     "image": {
-      "random_photo": { "name": "Zufallsfoto" }
+      "random_photo": {
+        "name": "Zufallsfoto"
+      }
     }
   }
 }
