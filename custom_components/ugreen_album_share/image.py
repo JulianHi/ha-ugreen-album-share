@@ -44,7 +44,7 @@ class UgreenAlbumRandomImage(CoordinatorEntity[UgreenAlbumCoordinator], ImageEnt
             identifiers={(DOMAIN, link.uuid)},
             name=coordinator.album_name,
             manufacturer="UGREEN",
-            model="Geteiltes Album",
+            model="Shared album",
             configuration_url=link.url,
             entry_type=DeviceEntryType.SERVICE,
         )

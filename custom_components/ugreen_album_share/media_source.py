@@ -29,7 +29,7 @@ async def async_get_media_source(hass: HomeAssistant) -> MediaSource:
 class UgreenAlbumMediaSource(MediaSource):
     """Albums are folders, photos are items. Identifier: '<uuid>' or '<uuid>/<photo id>'."""
 
-    name = "UGREEN Alben"
+    name = "UGREEN Albums"
 
     def __init__(self, hass: HomeAssistant) -> None:
         super().__init__(DOMAIN)

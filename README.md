@@ -1,61 +1,79 @@
-# UGREEN Album Share für Home Assistant
+# UGREEN Album Share for Home Assistant
 
-Bindet **geteilte Alben** (auch smarte Alben) eines UGREEN NAS (UGOS Pro, App „Fotos“) in Home Assistant ein – ohne SMB/WebDAV-Freigabe der ganzen Fotobibliothek und ohne NAS-Login.
+Brings **shared albums** (including smart albums) from a UGREEN NAS (UGOS Pro, "Photos" app) into Home Assistant – without exposing your whole photo library via SMB/WebDAV and without NAS credentials.
 
-- **Medien-Browser:** Jedes Album erscheint unter *Medien → UGREEN Alben* als Ordner mit allen Fotos (neueste zuerst). Die Liste wird live vom NAS gelesen, neue Fotos im Album sind sofort da.
-- **Bild-Entität pro Album:** `image.<album>_zufallsfoto` zeigt ein zufälliges Foto und wechselt im einstellbaren Intervall – ideal für Picture-Entity-Karten oder Wandtablets.
-- **Beliebig viele Alben**, verwaltet über *Konfigurieren*.
+- **Media browser:** every album shows up under *Media → UGREEN Albums* as a folder with all its photos (newest first). The list is read live from the NAS, so new photos in an album appear right away.
+- **Image entity per album:** `image.<album>_random_photo` shows a random photo and changes it at a configurable interval – great for picture-entity cards or wall tablets.
+- **Any number of albums**, managed via *Configure*.
+- **Access-code protected shares** are supported.
 
-Fotos werden über Home Assistant ausgeliefert (Proxy), funktionieren also auch, wenn das NAS vom Browser aus nicht erreichbar ist (z. B. von unterwegs). HEIC-Fotos liefert das NAS automatisch als WebP.
+Photos are served through Home Assistant (proxy), so they also work when the browser cannot reach the NAS directly (e.g. when you are away from home). HEIC photos are automatically delivered as WebP by the NAS.
 
-## Installation über HACS
+> [!WARNING]
+> **Disclaimer – use at your own risk.**
+> This is an unofficial community project. It is not affiliated with, endorsed by or supported by UGREEN. It uses the undocumented API of the UGOS Pro album share web page, which may change or break with any NAS update. The software is provided "as is", without warranty of any kind (see [LICENSE](LICENSE)). The authors are not responsible for any damage, data loss or exposure of private photos resulting from its use.
 
-1. HACS → ⋮ → *Benutzerdefinierte Repositories* → URL dieses Repositories, Typ **Integration**.
-2. „UGREEN Album Share“ installieren und Home Assistant neu starten.
-3. *Einstellungen → Geräte & Dienste → Integration hinzufügen → UGREEN Album Share*.
+> [!NOTE]
+> **Written by AI.** The code and documentation of this integration were written by [Claude](https://claude.ai) (Anthropic's AI assistant, via Claude Code), guided, reviewed and tested by a human.
 
-## Album-Link erzeugen
+## Installation via HACS
 
-In der UGREEN Fotos-App (Web oder Smartphone) ein Album öffnen → **Teilen** → Link kopieren. Der Link sieht so aus:
+1. HACS → ⋮ → *Custom repositories* → add the URL of this repository, type **Integration**.
+2. Install "UGREEN Album Share" and restart Home Assistant.
+3. *Settings → Devices & services → Add integration → UGREEN Album Share*.
+
+### Manual installation
+
+Copy `custom_components/ugreen_album_share` into the `custom_components` folder of your Home Assistant configuration and restart.
+
+## Creating a share link
+
+In the UGREEN Photos app (web or mobile), open an album → **Share** → copy the link. It looks like this:
 
 ```
 https://<nas>/photo/share/?id=2&pagetype=share&uuid=0d7328f5-....
 ```
 
-- Ist die Freigabe mit einem **Zugangscode** geschützt, diesen im Feld „Zugangscode“ angeben (sonst leer lassen).
-- Die Freigabe sollte **kein Ablaufdatum** haben, sonst verschwindet das Album danach.
-- Home Assistant muss die Adresse im Link erreichen können.
+- If the share is protected by an **access code**, enter it in the "Access code" field (otherwise leave it empty).
+- The share should have **no expiry date**, otherwise the album disappears once it expires.
+- Home Assistant must be able to reach the address in the link.
 
-## Konfiguration
+## Configuration
 
-Beim Hinzufügen wird der erste Album-Link abgefragt. Danach unter *UGREEN Album Share → Konfigurieren*:
+When adding the integration you are asked for the first album link. Afterwards use *UGREEN Album Share → Configure*:
 
-| Menüpunkt | Funktion |
+| Menu entry | Purpose |
 |---|---|
-| Album hinzufügen | weiteren Freigabe-Link eintragen (Zugangscode und Name optional, Standard-Name ist der Albumname) |
-| Album bearbeiten | Name oder Zugangscode eines Albums ändern (z. B. wenn der Code auf dem NAS geändert wurde) |
-| Alben entfernen | ein oder mehrere Alben entfernen (inkl. Gerät & Entität) |
-| Einstellungen | Wechselintervall des Zufallsfotos, SSL-Prüfung (z. B. für selbstsignierte Zertifikate abschalten) |
+| Add album | add another share link (access code and name optional, the name defaults to the album name on the NAS) |
+| Edit album | change the name or access code of an album (e.g. after the code was changed on the NAS) |
+| Remove albums | remove one or more albums (including their device and entity) |
+| Settings | interval of the random photo, SSL certificate verification (disable for self-signed certificates) |
 
-## Beispiel: Diashow-Karte
+## Example: slideshow card
 
 ```yaml
 type: picture-entity
-entity: image.laura_zufallsfoto
+entity: image.laura_random_photo
 show_state: false
 show_name: false
 ```
 
-## Wie es funktioniert
+The entity attributes contain `photo_id`, `file_name`, `taken` and `photo_count`.
 
-Die Integration nutzt dieselbe API wie die Freigabe-Webseite des NAS:
+## How it works
 
-1. `POST /ugreen/v5/photo/share/white/verify` → anonymes Token (24 h gültig, wird automatisch erneuert).
-   Bei geschützten Freigaben liefert das NAS stattdessen einen RSA-Schlüssel (`x-rsa-token`); der Zugangscode wird damit verschlüsselt an `POST …/white/password` geschickt, was das Token liefert.
-   Das NAS begrenzt Code-Eingaben (HTTP 429, ca. 1 Minute warten).
-2. `GET /ugreen/v5/photo/share/external/detail` → Fotoliste
-3. `GET /ugreen/v5/photo/share/external/stream?id=…&size_type=…` → Foto (1 = Vorschau, 3 = volle Größe als WebP, 0 = Original)
+The integration uses the same API as the share web page of the NAS:
 
-Der Zugangscode wird in der Home-Assistant-Konfiguration (`.storage`) gespeichert, wie Passwörter anderer Integrationen auch. Das NAS liefert über das Token nur Fotos aus, die im geteilten Album enthalten sind.
+1. `POST /ugreen/v5/photo/share/white/verify` → anonymous token (valid for 24 h, renewed automatically).
+   For protected shares the NAS instead returns an RSA public key (`x-rsa-token`); the access code is encrypted with it and sent to `POST …/white/password`, which returns the token.
+   The NAS rate limits access code attempts (HTTP 429, wait about a minute).
+2. `GET /ugreen/v5/photo/share/external/detail` → list of photos
+3. `GET /ugreen/v5/photo/share/external/stream?id=…&size_type=…` → photo (1 = thumbnail, 3 = full size as WebP, 0 = original)
 
-Getestet mit UGOS Pro, App `com.ugreen.album-share` Version 324.
+The access code is stored in the Home Assistant configuration (`.storage`), like passwords of other integrations. With the token, the NAS only serves photos that are part of the shared album.
+
+Tested with UGOS Pro, share web app `com.ugreen.album-share` version 324, and Home Assistant 2026.2.
+
+## License
+
+[MIT](LICENSE)
