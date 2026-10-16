@@ -1,0 +1,68 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add first album",
+        "description": "Paste the share link of an album from the UGREEN photo app. More albums can be added later via \"Configure\".",
+        "data": { "url": "Share link", "name": "Name (optional)" },
+        "data_description": { "name": "Defaults to the album name on the NAS." }
+      }
+    },
+    "error": {
+      "invalid_url": "This is not a UGREEN album share link (it needs id and uuid parameters).",
+      "already_configured": "This album is already added.",
+      "cannot_connect": "The NAS could not be reached.",
+      "invalid_share": "The share does not exist (anymore) or has expired.",
+      "password_protected": "Password protected shares are not supported.",
+      "unknown": "Unexpected error, see the log."
+    },
+    "abort": {
+      "single_instance_allowed": "Already configured. Add more albums via \"Configure\"."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "UGREEN Album Share",
+        "menu_options": {
+          "add_album": "Add album",
+          "remove_album": "Remove albums",
+          "settings": "Settings"
+        }
+      },
+      "add_album": {
+        "title": "Add album",
+        "description": "Paste the share link of an album from the UGREEN photo app.",
+        "data": { "url": "Share link", "name": "Name (optional)" },
+        "data_description": { "name": "Defaults to the album name on the NAS." }
+      },
+      "remove_album": {
+        "title": "Remove albums",
+        "data": { "remove": "Albums to remove" }
+      },
+      "settings": {
+        "title": "Settings",
+        "data": {
+          "rotate_interval": "Change random photo every",
+          "verify_ssl": "Verify SSL certificate"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "This is not a UGREEN album share link (it needs id and uuid parameters).",
+      "already_configured": "This album is already added.",
+      "cannot_connect": "The NAS could not be reached.",
+      "invalid_share": "The share does not exist (anymore) or has expired.",
+      "password_protected": "Password protected shares are not supported.",
+      "unknown": "Unexpected error, see the log."
+    },
+    "abort": {
+      "no_albums": "No albums configured."
+    }
+  },
+  "entity": {
+    "image": {
+      "random_photo": { "name": "Random photo" }
+    }
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Erstes Album hinzufügen",
+        "description": "Füge den Freigabe-Link eines Albums aus der UGREEN Fotos-App ein. Weitere Alben kannst du danach über \"Konfigurieren\" hinzufügen.",
+        "data": { "url": "Freigabe-Link", "name": "Name (optional)" },
+        "data_description": { "name": "Standard ist der Albumname auf dem NAS." }
+      }
+    },
+    "error": {
+      "invalid_url": "Das ist kein UGREEN-Album-Link (es fehlen die Parameter id und uuid).",
+      "already_configured": "Dieses Album ist bereits eingetragen.",
+      "cannot_connect": "Das NAS ist nicht erreichbar.",
+      "invalid_share": "Die Freigabe existiert nicht (mehr) oder ist abgelaufen.",
+      "password_protected": "Passwortgeschützte Freigaben werden nicht unterstützt.",
+      "unknown": "Unerwarteter Fehler, siehe Log."
+    },
+    "abort": {
+      "single_instance_allowed": "Bereits eingerichtet. Weitere Alben über \"Konfigurieren\" hinzufügen."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "UGREEN Album Share",
+        "menu_options": {
+          "add_album": "Album hinzufügen",
+          "remove_album": "Alben entfernen",
+          "settings": "Einstellungen"
+        }
+      },
+      "add_album": {
+        "title": "Album hinzufügen",
+        "description": "Füge den Freigabe-Link eines Albums aus der UGREEN Fotos-App ein.",
+        "data": { "url": "Freigabe-Link", "name": "Name (optional)" },
+        "data_description": { "name": "Standard ist der Albumname auf dem NAS." }
+      },
+      "remove_album": {
+        "title": "Alben entfernen",
+        "data": { "remove": "Zu entfernende Alben" }
+      },
+      "settings": {
+        "title": "Einstellungen",
+        "data": {
+          "rotate_interval": "Zufallsfoto wechseln alle",
+          "verify_ssl": "SSL-Zertifikat prüfen"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Das ist kein UGREEN-Album-Link (es fehlen die Parameter id und uuid).",
+      "already_configured": "Dieses Album ist bereits eingetragen.",
+      "cannot_connect": "Das NAS ist nicht erreichbar.",
+      "invalid_share": "Die Freigabe existiert nicht (mehr) oder ist abgelaufen.",
+      "password_protected": "Passwortgeschützte Freigaben werden nicht unterstützt.",
+      "unknown": "Unerwarteter Fehler, siehe Log."
+    },
+    "abort": {
+      "no_albums": "Keine Alben eingerichtet."
+    }
+  },
+  "entity": {
+    "image": {
+      "random_photo": { "name": "Zufallsfoto" }
+    }
+  }
+}

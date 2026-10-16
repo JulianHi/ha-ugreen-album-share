@@ -1,0 +1,15 @@
+{
+  "domain": "ugreen_album_share",
+  "name": "UGREEN Album Share",
+  "after_dependencies": ["media_source"],
+  "codeowners": ["@OWNER"],
+  "config_flow": true,
+  "dependencies": ["http"],
+  "documentation": "https://github.com/OWNER/ha-ugreen-album-share",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/OWNER/ha-ugreen-album-share/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}
